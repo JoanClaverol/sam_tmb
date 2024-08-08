@@ -1,14 +1,59 @@
 import os
+from dotenv import load_dotenv
 from datetime import datetime
 import requests
 import boto3
+from botocore.exceptions import ClientError
 import json
+
+load_dotenv()
 
 # Configuration
 BASE_URL = "https://api.tmb.cat/v1/"
 ENDPOINT = "planner/plan"
 BUCKET = "tmbinfo"
 BUCKET_FOLDER = "routes_from_api"
+# TMB_APP_ID = "8de5b882"
+# TMB_APP_KEY = "a9e0b1a36bd4417ffd5a815b186d043d"
+# TMB_APP_ID = os.getenv('TMB_APP_ID')
+# TMB_APP_KEY = os.getenv('TMB_APP_KEY')
+HOME_LOCATION = {
+    'latitude': 41.423043,
+    'longitude': 2.184006
+}
+
+WORK_LOCATION = {
+    'latitude': 41.406232,
+    'longitude': 2.192273
+}
+
+# get secrets
+def get_secret():
+
+    secret_name = "tmb-secrets"
+    region_name = "eu-west-3"
+
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+        secret = json.loads(get_secret_value_response['SecretString'])
+        return secret
+    except ClientError as e:
+        # For a list of exceptions thrown, see
+        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+        raise e
+
+secrets = get_secret()
+TMB_APP_ID = secrets['TMB_APP_ID']
+TMB_APP_KEY = secrets['TMB_APP_KEY']
 
 def get_journey_plan(home_location, work_location, tmb_app_id, tmb_app_key):
     """
@@ -80,20 +125,8 @@ def lambda_handler(event, context):
         dict: API Gateway Lambda Proxy Output Format.
     """
     try:
-        tmb_app_id = "8de5b882"
-        tmb_app_key = "a9e0b1a36bd4417ffd5a815b186d043d"
-
-        home_location = {
-            'latitude': 41.423043,
-            'longitude': 2.184006
-        }
-
-        work_location = {
-            'latitude': 41.406232,
-            'longitude': 2.192273
-        }
-
-        journey_plan = get_journey_plan(home_location, work_location, tmb_app_id, tmb_app_key)
+        
+        journey_plan = get_journey_plan(HOME_LOCATION, WORK_LOCATION, TMB_APP_ID, TMB_APP_KEY)
         store_journey_plan(journey_plan)
 
         return {

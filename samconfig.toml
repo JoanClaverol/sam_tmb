@@ -21,6 +21,7 @@ s3_prefix = "tmb-api"
 region = "eu-west-3"
 disable_rollback = true
 image_repositories = []
+parameter_overrides = "TMBAPPID=\"8de5b882\" TMBAPPKEY=\"a9e0b1a36bd4417ffd5a815b186d043d\""
 
 [default.package.parameters]
 resolve_s3 = true

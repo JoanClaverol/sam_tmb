@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: |
   tmb-api
@@ -9,11 +9,31 @@ Globals:
     Timeout: 15
     MemorySize: 128
 
+Parameters:
+  TMBAPPID:
+    Type: String
+    Description: "TMB API Application ID"
+  TMBAPPKEY:
+    Type: String
+    Description: "TMB API Application Key"
+
 Resources:
   TMBBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: tmbinfo
+
+  TMBSecrets:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: tmb-secrets
+      Description: Secrets for TMB
+      SecretString:
+        Fn::Sub: |
+          {
+            "TMB_APP_ID": "${TMBAPPID}",
+            "TMB_APP_KEY": "${TMBAPPKEY}"
+          }
 
   TMBGetRoute:
     Type: AWS::Serverless::Function
@@ -26,13 +46,18 @@ Resources:
       Environment:
         Variables:
           BucketName: !Ref TMBBucket
+          SecretName: !Ref TMBSecrets
       Policies:
-        - Version: '2012-10-17'
+        - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - s3:PutObject
               Resource: arn:aws:s3:::tmbinfo/*
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref TMBSecrets
 
   TMBGetRouteUrl:
     Type: AWS::Lambda::Url
@@ -45,7 +70,7 @@ Resources:
     Properties:
       Action: lambda:InvokeFunctionUrl
       FunctionName: !Ref TMBGetRoute
-      Principal: '*'
+      Principal: "*"
       FunctionUrlAuthType: NONE
 
 Outputs:
@@ -58,3 +83,6 @@ Outputs:
   TMBGetRouteUrl:
     Description: TMB Get Route URL
     Value: !GetAtt TMBGetRouteUrl.FunctionUrl
+  # TMBSecrets:
+  #   Description: The ARN of the TMB API Secrets
+  #   Value: !Ref TMBSecrets
