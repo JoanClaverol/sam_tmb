@@ -5,6 +5,7 @@ codeuri = "/Users/joanclaverol/Documents/projects/data-engineer-project/tmb-api/
 runtime = "python3.9"
 architecture = "x86_64"
 handler = "app.lambda_handler"
+source_hash = "9b858a97ac72469a41bb59a119ac58f554fdc7b2c7dd78e17f071ca94c2fb7cd"
 manifest_hash = "cd927ec7c9082a68bcbd42dc129d4ffc"
 packagetype = "Zip"
 functions = ["TMBGetRoute"]
