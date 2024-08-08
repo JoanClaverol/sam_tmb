@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: |
+  tmb-api
+  Sample SAM Template for tmb-api
+
+Globals:
+  Function:
+    Timeout: 15
+    MemorySize: 128
+
+Resources:
+  TMBBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: tmbinfo
+
+  TMBGetRoute:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: tmb_get_route/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          BucketName: !Ref TMBBucket
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: arn:aws:s3:::tmbinfo/*
+
+  TMBGetRouteUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      AuthType: NONE
+      TargetFunctionArn: !GetAtt TMBGetRoute.Arn
+
+  TMBGetRouteUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunctionUrl
+      FunctionName: !Ref TMBGetRoute
+      Principal: '*'
+      FunctionUrlAuthType: NONE
+
+Outputs:
+  TMBBucket:
+    Description: TMB Bucket
+    Value: !Ref TMBBucket
+  TMBGetRoute:
+    Description: TMB Get Route
+    Value: !GetAtt TMBGetRoute.Arn
+  TMBGetRouteUrl:
+    Description: TMB Get Route URL
+    Value: !GetAtt TMBGetRouteUrl.FunctionUrl
