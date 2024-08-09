@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: |
   tmb-api
@@ -12,10 +12,10 @@ Globals:
 Parameters:
   TMBAPPID:
     Type: String
-    Description: "TMB API Application ID"
+    Description: TMB API Application ID
   TMBAPPKEY:
     Type: String
-    Description: "TMB API Application Key"
+    Description: TMB API Application Key
 
 Resources:
   TMBBucket:
@@ -28,12 +28,11 @@ Resources:
     Properties:
       Name: tmb-secrets
       Description: Secrets for TMB
-      SecretString:
-        Fn::Sub: |
-          {
-            "TMB_APP_ID": "${TMBAPPID}",
-            "TMB_APP_KEY": "${TMBAPPKEY}"
-          }
+      SecretString: !Sub |
+        {
+          "TMB_APP_ID": "${TMBAPPID}",
+          "TMB_APP_KEY": "${TMBAPPKEY}"
+        }
 
   TMBGetRoute:
     Type: AWS::Serverless::Function
@@ -48,7 +47,7 @@ Resources:
           BucketName: !Ref TMBBucket
           SecretName: !Ref TMBSecrets
       Policies:
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
@@ -70,7 +69,7 @@ Resources:
     Properties:
       Action: lambda:InvokeFunctionUrl
       FunctionName: !Ref TMBGetRoute
-      Principal: "*"
+      Principal: '*'
       FunctionUrlAuthType: NONE
 
 Outputs:

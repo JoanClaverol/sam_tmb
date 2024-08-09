@@ -244,4 +244,8 @@ $RECYCLE.BIN/
 # remove all the content on filder .aws-sam
 .aws-sam/
 
+# ignore all files and folder data in the src folder or any subfolder
+data/
+**/data/
+
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode
