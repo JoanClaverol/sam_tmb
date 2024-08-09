@@ -38,6 +38,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: tmb_get_route/
+      Description: TMB Get Route from API in JSON format
       Handler: app.lambda_handler
       Runtime: python3.9
       Architectures:
@@ -57,6 +58,12 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref TMBSecrets
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 8 * * ? *)
+            # Schedule: rate(1 minute)
 
   TMBGetRouteUrl:
     Type: AWS::Lambda::Url
@@ -75,9 +82,7 @@ Resources:
   TMBLogs:
     Type: AWS::Serverless::Function
     Properties:
-      Description: !Sub
-        - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: Function
+      Description: TMB Log File Creator
       CodeUri: tmb_log_file_creator/
       Handler: app.lambda_handler
       Runtime: python3.9
@@ -99,7 +104,10 @@ Resources:
             - Effect: Allow
               Action:
                 - s3:PutObject
-              Resource: arn:aws:s3:::tmbinfo/logs/* # WARNING: Hardcoded bucket name
+                - s3:GetObject
+                - s3:DeleteObject
+              Resource:
+                - arn:aws:s3:::tmbinfo/logs/*
 
 Outputs:
   TMBBucket:
@@ -111,6 +119,3 @@ Outputs:
   TMBGetRouteUrl:
     Description: TMB Get Route URL
     Value: !GetAtt TMBGetRouteUrl.FunctionUrl
-  # TMBSecrets:
-  #   Description: The ARN of the TMB API Secrets
-  #   Value: !Ref TMBSecrets
