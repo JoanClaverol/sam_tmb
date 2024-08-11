@@ -49,7 +49,7 @@ routes = extract_routes(journey_plan)
 
 routes_df = pd.json_normalize(routes, 'legs', ['id', 'duration', 'transfers', 'modes'])
 
-
+routes_df.to_csv('routes.csv', index=False)
 
 if __name__ == '__main__':
     print(routes_df.sort_values(['id', 'start_time']))
