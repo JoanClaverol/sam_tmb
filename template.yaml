@@ -109,6 +109,37 @@ Resources:
               Resource:
                 - arn:aws:s3:::tmbinfo/logs/*
 
+  TMBTransformRouteToCSV:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: TMB Transform Route to CSV
+      CodeUri: tmb_transform_route_to_csv/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Events:
+        TMBBucketEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref TMBBucket
+            Events:
+              - s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: routes_from_api/
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource: arn:aws:s3:::tmbinfo/*
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: arn:aws:s3:::route_csv/*
+
 Outputs:
   TMBBucket:
     Description: TMB Bucket

@@ -1,4 +1,5 @@
 import json
+import pandas as pd
 
 # Specify the file path
 file_path = './data/journey_plan_2024-08-07_11-43.json'
@@ -45,7 +46,6 @@ def extract_routes(data):
 # Extract route information
 routes = extract_routes(journey_plan)
 
-import pandas as pd
 
 routes_df = pd.json_normalize(routes, 'legs', ['id', 'duration', 'transfers', 'modes'])
 
