@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: |
   tmb-api
@@ -48,7 +48,7 @@ Resources:
           BucketName: !Ref TMBBucket
           SecretName: !Ref TMBSecrets
       Policies:
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
@@ -76,38 +76,16 @@ Resources:
     Properties:
       Action: lambda:InvokeFunctionUrl
       FunctionName: !Ref TMBGetRoute
-      Principal: "*"
+      Principal: '*'
       FunctionUrlAuthType: NONE
 
-  # TMBLogs:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     Description: TMB Log File Creator
-  #     CodeUri: tmb_log_file_creator/
-  #     Handler: app.lambda_handler
-  #     Runtime: python3.9
-  #     Events:
-  #       TMBBucketEvent:
-  #         Type: S3
-  #         Properties:
-  #           Bucket: !Ref TMBBucket
-  #           Events:
-  #             - s3:ObjectCreated:*
-  #           Filter:
-  #             S3Key:
-  #               Rules:
-  #                 - Name: prefix
-  #                   Value: routes_from_api/
-  #     Policies:
-  #       - Version: "2012-10-17"
-  #         Statement:
-  #           - Effect: Allow
-  #             Action:
-  #               - s3:PutObject
-  #               - s3:GetObject
-  #               - s3:DeleteObject
-  #             Resource:
-  #               - arn:aws:s3:::tmbinfo/logs/*
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: TMB Route Notifications
+      Subscription:
+        - Endpoint: joanclaverol@gmail.com
+          Protocol: email
 
   TMBTransformRouteToCSV:
     Type: AWS::Serverless::Function
@@ -131,7 +109,7 @@ Resources:
                   - Name: suffix
                     Value: .json
       Policies:
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
@@ -141,6 +119,101 @@ Resources:
               Action:
                 - s3:PutObject
               Resource: arn:aws:s3:::tmbinfo/routes_csv/*
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !GetAtt SendSNSNotificationFunction.Arn
+
+  SendSNSNotificationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: tmb_send_sns_notification/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Environment:
+        Variables:
+          SNSTopicArn: !Ref SNSTopic
+      Events:
+        TMBTransformRouteToCSVCompletion:
+          Type: S3
+          Properties:
+            Bucket: !Ref TMBBucket
+            Events:
+              - s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: routes_csv/
+                  - Name: suffix
+                    Value: .csv
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !Ref SNSTopic
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource: arn:aws:s3:::tmbinfo/routes_csv/*
+
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: TMBUserPool
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: TMBUserPoolClient
+      GenerateSecret: false
+      AllowedOAuthFlows:
+        - implicit
+      AllowedOAuthScopes:
+        - email
+        - openid
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs:
+        - https://example.com/callback
+      LogoutURLs:
+        - https://example.com/logout
+
+  TMBApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: TMB API
+      StageName: Prod
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt CognitoUserPool.Arn
+      DefinitionBody:
+        openapi: 3.0.1
+        info:
+          title: TMB API
+          version: '1.0'
+        paths:
+          /get-route:
+            get:
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TMBGetRoute.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
+              responses: {}
 
 Outputs:
   TMBBucket:
@@ -152,3 +225,6 @@ Outputs:
   TMBGetRouteUrl:
     Description: TMB Get Route URL
     Value: !GetAtt TMBGetRouteUrl.FunctionUrl
+  SNSTopicArn:
+    Description: SNS Topic ARN for route notifications
+    Value: !Ref SNSTopic

@@ -66,8 +66,8 @@ def get_journey_plan(home_location, work_location, tmb_app_id, tmb_app_key):
     """
     from_place = f"{home_location['latitude']},{home_location['longitude']}"
     to_place = f"{work_location['latitude']},{work_location['longitude']}"
-    date = datetime.now().strftime("%Y-%m-%d")
-    time = datetime.now().strftime("%H:%M")
+    date = datetime.now().strftime("%m-%d-%Y")  
+    time = datetime.now().strftime("%I:%M%p").lower() 
     mode = ['TRANSIT', 'WALK']
 
     params = {
