@@ -1,17 +1,16 @@
-import json
 import pandas as pd
-
-# Specify the file path
-file_path = './data/journey_plan_2024-08-07_11-43.json'
-
-# Read the JSON file
-with open(file_path, 'r') as file:
-    journey_plan = json.load(file)
-
-
 import uuid
 
 def extract_routes(data):
+    """
+    Extracts route information from the JSON data and returns a DataFrame with the route details.
+
+    Parameters:
+    - data (dict): A dictionary containing the journey plan information.
+
+    Returns:
+    - routes_df (pandas.DataFrame): A DataFrame containing the route information
+    """
     routes = []
 
     if 'plan' in data and 'itineraries' in data['plan']:
@@ -40,16 +39,7 @@ def extract_routes(data):
             
             route['modes'] = list(route['modes'])  # Convert the set to a list
             routes.append(route)
-    
-    return routes
 
-# Extract route information
-routes = extract_routes(journey_plan)
+        routes_df = pd.json_normalize(routes, 'legs', ['id', 'duration', 'transfers', 'modes'])
 
-
-routes_df = pd.json_normalize(routes, 'legs', ['id', 'duration', 'transfers', 'modes'])
-
-routes_df.to_csv('routes.csv', index=False)
-
-if __name__ == '__main__':
-    print(routes_df.sort_values(['id', 'start_time']))
+    return routes_df

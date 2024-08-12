@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: |
   tmb-api
@@ -48,7 +48,7 @@ Resources:
           BucketName: !Ref TMBBucket
           SecretName: !Ref TMBSecrets
       Policies:
-        - Version: '2012-10-17'
+        - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
@@ -76,38 +76,38 @@ Resources:
     Properties:
       Action: lambda:InvokeFunctionUrl
       FunctionName: !Ref TMBGetRoute
-      Principal: '*'
+      Principal: "*"
       FunctionUrlAuthType: NONE
 
-  TMBLogs:
-    Type: AWS::Serverless::Function
-    Properties:
-      Description: TMB Log File Creator
-      CodeUri: tmb_log_file_creator/
-      Handler: app.lambda_handler
-      Runtime: python3.9
-      Events:
-        TMBBucketEvent:
-          Type: S3
-          Properties:
-            Bucket: !Ref TMBBucket
-            Events:
-              - s3:ObjectCreated:*
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: routes_from_api/
-      Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - s3:PutObject
-                - s3:GetObject
-                - s3:DeleteObject
-              Resource:
-                - arn:aws:s3:::tmbinfo/logs/*
+  # TMBLogs:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     Description: TMB Log File Creator
+  #     CodeUri: tmb_log_file_creator/
+  #     Handler: app.lambda_handler
+  #     Runtime: python3.9
+  #     Events:
+  #       TMBBucketEvent:
+  #         Type: S3
+  #         Properties:
+  #           Bucket: !Ref TMBBucket
+  #           Events:
+  #             - s3:ObjectCreated:*
+  #           Filter:
+  #             S3Key:
+  #               Rules:
+  #                 - Name: prefix
+  #                   Value: routes_from_api/
+  #     Policies:
+  #       - Version: "2012-10-17"
+  #         Statement:
+  #           - Effect: Allow
+  #             Action:
+  #               - s3:PutObject
+  #               - s3:GetObject
+  #               - s3:DeleteObject
+  #             Resource:
+  #               - arn:aws:s3:::tmbinfo/logs/*
 
   TMBTransformRouteToCSV:
     Type: AWS::Serverless::Function
@@ -128,17 +128,19 @@ Resources:
                 Rules:
                   - Name: prefix
                     Value: routes_from_api/
+                  - Name: suffix
+                    Value: .json
       Policies:
-        - Version: '2012-10-17'
+        - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - s3:GetObject
-              Resource: arn:aws:s3:::tmbinfo/*
+              Resource: arn:aws:s3:::tmbinfo/routes_from_api/*
             - Effect: Allow
               Action:
                 - s3:PutObject
-              Resource: arn:aws:s3:::route_csv/*
+              Resource: arn:aws:s3:::tmbinfo/routes_csv/*
 
 Outputs:
   TMBBucket:

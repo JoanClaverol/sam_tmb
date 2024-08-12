@@ -19,7 +19,7 @@ def lambda_handler(event, context):
         try:
             current_log = s3.get_object(Bucket=bucket_name, Key=log_key)
             log_content = current_log['Body'].read().decode('utf-8')
-        except s3.exceptions.NoSuchKey:
+        except Exception as e:
             # If the log file does not exist, log_content remains empty
             print(f"{log_key} does not exist. Creating a new log file.")
 
