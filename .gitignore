@@ -248,4 +248,8 @@ $RECYCLE.BIN/
 data/
 **/data/
 
+# ignore any jwt
+*.jwt
+jwt.json
+
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode

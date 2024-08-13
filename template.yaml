@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: |
-  tmb-api
-  Sample SAM Template for tmb-api
+  Integration of the API from TMB (Transports Metropolitans de Barcelona)
+  with AWS services
 
 Globals:
   Function:
@@ -18,8 +18,16 @@ Parameters:
     Description: TMB API Application Key
   BucketName:
     Type: String
-    Description: S3 Bucket Name for TMB
+    Description: S3 Bucket Name for deployment
     Default: tmbinfo
+  Version:
+    Type: String
+    Description: API version (e.g., v1)
+    Default: v1
+  YourEmail:
+    Type: String
+    Description: Email address for the first Cognito user
+    Default: joanclaverol@gmail.com
 
 Resources:
   TMBBucket:
@@ -37,6 +45,58 @@ Resources:
           "TMB_APP_ID": "${TMBAPPID}",
           "TMB_APP_KEY": "${TMBAPPKEY}"
         }
+
+  # Cognito User Pool
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      UserPoolName: TestingUsers
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireLowercase: true
+          RequireNumbers: false
+          RequireSymbols: false
+          RequireUppercase: true
+
+  # Cognito User Pool Client
+  UserPoolTokenClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - USER_PASSWORD_AUTH
+
+  # Cognito User Pool User
+  UserPoolUser:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      DesiredDeliveryMediums:
+        - EMAIL
+      Username: !Ref YourEmail
+      UserPoolId: !Ref UserPool
+
+  TMBApi:
+    # DependsOn: UserPool
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: ServiceApi
+      StageName: !Ref Version
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
 
   TMBGetRoute:
     Type: AWS::Serverless::Function
@@ -63,31 +123,32 @@ Resources:
                 - secretsmanager:GetSecretValue
               Resource: !Ref TMBSecrets
       Events:
+        Get:
+          Type: Api
+          Properties:
+            Path: /open
+            RestApiId: !Ref TMBApi
+            Method: GET
+        # NOT WORKING
+        GetAutherised:
+          Type: Api
+          Properties:
+            Path: /
+            RestApiId: !Ref TMBApi
+            Method: GET
+            Auth:
+              Authorizer: CognitoAuthorizer
         ScheduleEvent:
           Type: Schedule
           Properties:
             Schedule: cron(0 8 * * ? *)
-
-  TMBGetRouteUrl:
-    Type: AWS::Lambda::Url
-    Properties:
-      AuthType: NONE
-      TargetFunctionArn: !GetAtt TMBGetRoute.Arn
-
-  TMBGetRouteUrlPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunctionUrl
-      FunctionName: !Ref TMBGetRoute
-      Principal: "*"
-      FunctionUrlAuthType: NONE
 
   SNSTopic:
     Type: AWS::SNS::Topic
     Properties:
       DisplayName: TMB Route Notifications
       Subscription:
-        - Endpoint: joanclaverol@gmail.com
+        - Endpoint: !Ref YourEmail
           Protocol: email
 
   TMBTransformRouteToCSV:
@@ -166,63 +227,34 @@ Outputs:
   TMBBucket:
     Description: TMB Bucket
     Value: !Ref TMBBucket
-  TMBGetRoute:
-    Description: TMB Get Route
-    Value: !GetAtt TMBGetRoute.Arn
+
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${TMBApi}.execute-api.${AWS::Region}.amazonaws.com/${Version}/"
+
+  OpenApiUrl:
+    Description: "API Gateway OpenAPI definition URL"
+    Value: !Sub "https://${TMBApi}.execute-api.${AWS::Region}.amazonaws.com/${Version}/open"
+
+  AuthenticatedApiUrl:
+    Description: "Authenticated API URL"
+    Value: !Sub "https://${TMBApi}.execute-api.${AWS::Region}.amazonaws.com/${Version}/"
+
+  UserPoolId:
+    Description: "Cognito User Pool ID"
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: "Cognito User Pool Client ID"
+    Value: !Ref UserPoolTokenClient
+
   TMBGetRouteUrl:
     Description: TMB Get Route URL
-    Value: !GetAtt TMBGetRouteUrl.FunctionUrl
+    Value: !Sub https://${TMBApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/get-route
+
   SNSTopicArn:
     Description: SNS Topic ARN for route notifications
     Value: !Ref SNSTopic
-  # CognitoUserPool:
-  #   Type: AWS::Cognito::UserPool
-  #   Properties:
-  #     UserPoolName: TMBUserPool
-  #     AutoVerifiedAttributes:
-  #       - email
-  #     Policies:
-  #       PasswordPolicy:
-  #         MinimumLength: 8
-  #         RequireUppercase: true
-  #         RequireLowercase: true
-  #         RequireNumbers: true
-  #         RequireSymbols: false
 
-  # CognitoUserPoolClient:
-  #   Type: AWS::Cognito::UserPoolClient
-  #   Properties:
-  #     UserPoolId: !Ref CognitoUserPool
-  #     ClientName: TMBUserPoolClient
-  #     GenerateSecret: true
-  #     AllowedOAuthFlows:
-  #       - client_credentials
-  #     AllowedOAuthFlowsUserPoolClient: true
-  #     # AllowedOAuthScopes:
-  #     #   - aws.cognito.signin.user.admin # Using a minimal required scope, adjust if you have custom scopes
-  #     SupportedIdentityProviders:
-  #       - COGNITO
-
-  # TMBApi:
-  #   Type: AWS::Serverless::Api
-  #   Properties:
-  #     Name: TMB API
-  #     StageName: Prod
-  #     Auth:
-  #       DefaultAuthorizer: CognitoAuthorizer
-  #       Authorizers:
-  #         CognitoAuthorizer:
-  #           UserPoolArn: !GetAtt CognitoUserPool.Arn
-  #     DefinitionBody:
-  #       openapi: 3.0.1
-  #       info:
-  #         title: TMB API
-  #         version: "1.0"
-  #       paths:
-  #         /get-route:
-  #           get:
-  #             x-amazon-apigateway-integration:
-  #               uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TMBGetRoute.Arn}/invocations
-  #               httpMethod: POST
-  #               type: aws_proxy
-  #             responses: {}
+  ApiGatewayInvokeURL:
+    Description: API Gateway Invoke URL
+    Value: !Sub https://${TMBApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/get-route

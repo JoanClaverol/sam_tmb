@@ -127,10 +127,48 @@ def lambda_handler(event, context):
 
         return {
             "statusCode": 200,
-            "message": "Journey plan successfully retrieved",
-            "body": journey_plan,
+            "body": json.dumps({
+                "message": "Journey plan successfully retrieved",
+                "journey_plan": journey_plan,
+            }),
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",  # Allow CORS for all domains, adjust as necessary
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*"
+            }
         }
     
     except requests.RequestException as e:
-        print(e)
-        raise e
+        # Log the exception and return a proper error response
+        print(f"Request failed: {e}")
+        return {
+            "statusCode": 502,  # Bad Gateway if the external request failed
+            "body": json.dumps({
+                "message": "Failed to retrieve the journey plan",
+                "error": str(e)
+            }),
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",  # Allow CORS for all domains, adjust as necessary
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*"
+            }
+        }
+    
+    except Exception as e:
+        # Catch any other exceptions and return a generic error response
+        print(f"An error occurred: {e}")
+        return {
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Internal server error",
+                "error": str(e)
+            }),
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",  # Allow CORS for all domains, adjust as necessary
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*"
+            }
+        }
