@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: |
   tmb-api
@@ -16,12 +16,16 @@ Parameters:
   TMBAPPKEY:
     Type: String
     Description: TMB API Application Key
+  BucketName:
+    Type: String
+    Description: S3 Bucket Name for TMB
+    Default: tmbinfo
 
 Resources:
   TMBBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: tmbinfo
+      BucketName: !Ref BucketName
 
   TMBSecrets:
     Type: AWS::SecretsManager::Secret
@@ -45,15 +49,15 @@ Resources:
         - x86_64
       Environment:
         Variables:
-          BucketName: !Ref TMBBucket
+          BucketName: !Ref BucketName
           SecretName: !Ref TMBSecrets
       Policies:
-        - Version: '2012-10-17'
+        - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - s3:PutObject
-              Resource: arn:aws:s3:::tmbinfo/*
+              Resource: !Sub arn:aws:s3:::${BucketName}/*
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
@@ -63,7 +67,6 @@ Resources:
           Type: Schedule
           Properties:
             Schedule: cron(0 8 * * ? *)
-            # Schedule: rate(1 minute)
 
   TMBGetRouteUrl:
     Type: AWS::Lambda::Url
@@ -76,7 +79,7 @@ Resources:
     Properties:
       Action: lambda:InvokeFunctionUrl
       FunctionName: !Ref TMBGetRoute
-      Principal: '*'
+      Principal: "*"
       FunctionUrlAuthType: NONE
 
   SNSTopic:
@@ -109,16 +112,16 @@ Resources:
                   - Name: suffix
                     Value: .json
       Policies:
-        - Version: '2012-10-17'
+        - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - s3:GetObject
-              Resource: arn:aws:s3:::tmbinfo/routes_from_api/*
+              Resource: !Sub arn:aws:s3:::${BucketName}/routes_from_api/*
             - Effect: Allow
               Action:
                 - s3:PutObject
-              Resource: arn:aws:s3:::tmbinfo/routes_csv/*
+              Resource: !Sub arn:aws:s3:::${BucketName}/routes_csv/*
             - Effect: Allow
               Action:
                 - lambda:InvokeFunction
@@ -148,7 +151,7 @@ Resources:
                   - Name: suffix
                     Value: .csv
       Policies:
-        - Version: '2012-10-17'
+        - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
@@ -157,63 +160,7 @@ Resources:
             - Effect: Allow
               Action:
                 - s3:GetObject
-              Resource: arn:aws:s3:::tmbinfo/routes_csv/*
-
-  CognitoUserPool:
-    Type: AWS::Cognito::UserPool
-    Properties:
-      UserPoolName: TMBUserPool
-      AutoVerifiedAttributes:
-        - email
-      Policies:
-        PasswordPolicy:
-          MinimumLength: 8
-          RequireUppercase: true
-          RequireLowercase: true
-          RequireNumbers: true
-          RequireSymbols: false
-
-  CognitoUserPoolClient:
-    Type: AWS::Cognito::UserPoolClient
-    Properties:
-      UserPoolId: !Ref CognitoUserPool
-      ClientName: TMBUserPoolClient
-      GenerateSecret: false
-      AllowedOAuthFlows:
-        - implicit
-      AllowedOAuthScopes:
-        - email
-        - openid
-      SupportedIdentityProviders:
-        - COGNITO
-      CallbackURLs:
-        - https://example.com/callback
-      LogoutURLs:
-        - https://example.com/logout
-
-  TMBApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      Name: TMB API
-      StageName: Prod
-      Auth:
-        DefaultAuthorizer: CognitoAuthorizer
-        Authorizers:
-          CognitoAuthorizer:
-            UserPoolArn: !GetAtt CognitoUserPool.Arn
-      DefinitionBody:
-        openapi: 3.0.1
-        info:
-          title: TMB API
-          version: '1.0'
-        paths:
-          /get-route:
-            get:
-              x-amazon-apigateway-integration:
-                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TMBGetRoute.Arn}/invocations
-                httpMethod: POST
-                type: aws_proxy
-              responses: {}
+              Resource: !Sub arn:aws:s3:::${BucketName}/routes_csv/*
 
 Outputs:
   TMBBucket:
@@ -228,3 +175,54 @@ Outputs:
   SNSTopicArn:
     Description: SNS Topic ARN for route notifications
     Value: !Ref SNSTopic
+  # CognitoUserPool:
+  #   Type: AWS::Cognito::UserPool
+  #   Properties:
+  #     UserPoolName: TMBUserPool
+  #     AutoVerifiedAttributes:
+  #       - email
+  #     Policies:
+  #       PasswordPolicy:
+  #         MinimumLength: 8
+  #         RequireUppercase: true
+  #         RequireLowercase: true
+  #         RequireNumbers: true
+  #         RequireSymbols: false
+
+  # CognitoUserPoolClient:
+  #   Type: AWS::Cognito::UserPoolClient
+  #   Properties:
+  #     UserPoolId: !Ref CognitoUserPool
+  #     ClientName: TMBUserPoolClient
+  #     GenerateSecret: true
+  #     AllowedOAuthFlows:
+  #       - client_credentials
+  #     AllowedOAuthFlowsUserPoolClient: true
+  #     # AllowedOAuthScopes:
+  #     #   - aws.cognito.signin.user.admin # Using a minimal required scope, adjust if you have custom scopes
+  #     SupportedIdentityProviders:
+  #       - COGNITO
+
+  # TMBApi:
+  #   Type: AWS::Serverless::Api
+  #   Properties:
+  #     Name: TMB API
+  #     StageName: Prod
+  #     Auth:
+  #       DefaultAuthorizer: CognitoAuthorizer
+  #       Authorizers:
+  #         CognitoAuthorizer:
+  #           UserPoolArn: !GetAtt CognitoUserPool.Arn
+  #     DefinitionBody:
+  #       openapi: 3.0.1
+  #       info:
+  #         title: TMB API
+  #         version: "1.0"
+  #       paths:
+  #         /get-route:
+  #           get:
+  #             x-amazon-apigateway-integration:
+  #               uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TMBGetRoute.Arn}/invocations
+  #               httpMethod: POST
+  #               type: aws_proxy
+  #             responses: {}
