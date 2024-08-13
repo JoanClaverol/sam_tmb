@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: |
   Integration of the API from TMB (Transports Metropolitans de Barcelona)
@@ -95,9 +95,9 @@ Resources:
       #     Parameters:
       #       Location: openapi.yaml
       Cors:
-        AllowMethods: "'*'"
-        AllowHeaders: "'*'"
-        AllowOrigin: "'*'"
+        AllowMethods: '''*'''
+        AllowHeaders: '''*'''
+        AllowOrigin: '''*'''
       Auth:
         Authorizers:
           CognitoAuthorizer:
@@ -117,7 +117,7 @@ Resources:
           BucketName: !Ref BucketName
           SecretName: !Ref TMBSecrets
       Policies:
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
@@ -188,7 +188,7 @@ Resources:
                   - Name: suffix
                     Value: .json
       Policies:
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
@@ -227,7 +227,7 @@ Resources:
                   - Name: suffix
                     Value: .csv
       Policies:
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
