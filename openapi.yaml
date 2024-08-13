@@ -1,0 +1,69 @@
+openapi: 3.0.1
+
+info:
+  title: TMB API Gateway
+  description: This is the API for retrieving and storing journey plans from TMB API.
+  version: "v1"
+paths:
+  /open:
+    get:
+      summary: Retrieve a journey plan from TMB API.
+      description: This GET endpoint returns a journey plan from a given home location to a work location.
+      parameters:
+        - name: work_lat
+          in: query
+          required: false
+          description: The latitude of the work location.
+          schema:
+            type: string
+        - name: work_lon
+          in: query
+          required: false
+          description: The longitude of the work location.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: A successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Journey plan successfully retrieved
+                  journey_plan:
+                    type: object
+                    description: The journey plan data
+  /:
+    get:
+      summary: Retrieve a journey plan from TMB API with Cognito authentication.
+      description: This GET endpoint returns a journey plan from a given home location to a work location, and requires Cognito authentication.
+      parameters:
+        - name: work_lat
+          in: query
+          required: false
+          description: The latitude of the work location.
+          schema:
+            type: string
+        - name: work_lon
+          in: query
+          required: false
+          description: The longitude of the work location.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: A successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Journey plan successfully retrieved
+                  journey_plan:
+                    type: object
+                    description: The journey plan data

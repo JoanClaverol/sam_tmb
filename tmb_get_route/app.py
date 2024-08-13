@@ -13,15 +13,6 @@ BASE_URL = "https://api.tmb.cat/v1/"
 ENDPOINT = "planner/plan"
 BUCKET = "tmbinfo"
 BUCKET_FOLDER = "routes_from_api"
-HOME_LOCATION = {
-    'latitude': 41.423043,
-    'longitude': 2.184006
-}
-
-WORK_LOCATION = {
-    'latitude': 41.406232,
-    'longitude': 2.192273
-}
 
 # get secrets
 def get_secret():
@@ -110,19 +101,32 @@ def store_journey_plan(journey_plan):
         raise e
 
 def lambda_handler(event, context):
-    """
-    Lambda function handler for retrieving and storing journey plans.
+    HOME_LOCATION = {
+        'latitude': 41.423043,
+        'longitude': 2.184006
+    }
 
-    Parameters:
-        event (dict): Event data passed by Lambda.
-        context (object): Context object provided by Lambda.
+    WORK_LOCATION = {
+        'latitude': 41.406232,
+        'longitude': 2.192273
+    }
 
-    Returns:
-        dict: API Gateway Lambda Proxy Output Format.
-    """
     try:
+        work_location = WORK_LOCATION  # Default to predefined WORK_LOCATION
+
+        # Check if the event is triggered by API Gateway
+        if 'queryStringParameters' in event:
+            # Extract work_lat and work_lon from query parameters if available
+            work_lat = event['queryStringParameters'].get('work_lat')
+            work_lon = event['queryStringParameters'].get('work_lon')
+            print(f"work_lat: {work_lat}, work_lon: {work_lon}")
+            print(f"WORK_LOCATION: {WORK_LOCATION}")
+
+            # If parameters are provided, override the default work_location
+            if work_lat and work_lon:
+                work_location = {'latitude': float(work_lat), 'longitude': float(work_lon)}
         
-        journey_plan = get_journey_plan(HOME_LOCATION, WORK_LOCATION, TMB_APP_ID, TMB_APP_KEY)
+        journey_plan = get_journey_plan(HOME_LOCATION, work_location, TMB_APP_ID, TMB_APP_KEY)
         store_journey_plan(journey_plan)
 
         return {
@@ -138,7 +142,7 @@ def lambda_handler(event, context):
                 "Access-Control-Allow-Headers": "*"
             }
         }
-    
+
     except requests.RequestException as e:
         # Log the exception and return a proper error response
         print(f"Request failed: {e}")
@@ -155,7 +159,7 @@ def lambda_handler(event, context):
                 "Access-Control-Allow-Headers": "*"
             }
         }
-    
+
     except Exception as e:
         # Catch any other exceptions and return a generic error response
         print(f"An error occurred: {e}")

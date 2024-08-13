@@ -89,6 +89,11 @@ Resources:
     Properties:
       Name: ServiceApi
       StageName: !Ref Version
+      # DefinitionBody:
+      #   Fn:Transform:
+      #     Name: AWS::Include
+      #     Parameters:
+      #       Location: openapi.yaml
       Cors:
         AllowMethods: "'*'"
         AllowHeaders: "'*'"
@@ -124,18 +129,28 @@ Resources:
               Resource: !Ref TMBSecrets
       Events:
         Get:
+          # Example API call: https://woacksu732.execute-api.eu-west-3.amazonaws.com/v1/open?work_lat=41.373564&work_lon=2.146583
           Type: Api
           Properties:
             Path: /open
             RestApiId: !Ref TMBApi
             Method: GET
-        # NOT WORKING
+            RequestParameters:
+              - method.request.querystring.work_lat:
+                  Required: false
+              - method.request.querystring.work_lon:
+                  Required: false
         GetAutherised:
           Type: Api
           Properties:
             Path: /
             RestApiId: !Ref TMBApi
             Method: GET
+            RequestParameters:
+              - method.request.querystring.work_lat:
+                  Required: false
+              - method.request.querystring.work_lon:
+                  Required: false
             Auth:
               Authorizer: CognitoAuthorizer
         ScheduleEvent:
@@ -228,23 +243,23 @@ Outputs:
     Description: TMB Bucket
     Value: !Ref TMBBucket
 
-  ApiEndpoint:
-    Description: "API Gateway endpoint URL"
-    Value: !Sub "https://${TMBApi}.execute-api.${AWS::Region}.amazonaws.com/${Version}/"
-
   OpenApiUrl:
-    Description: "API Gateway OpenAPI definition URL"
-    Value: !Sub "https://${TMBApi}.execute-api.${AWS::Region}.amazonaws.com/${Version}/open"
+    Description: API Gateway OpenAPI definition URL
+    Value: !Sub https://${TMBApi}.execute-api.${AWS::Region}.amazonaws.com/${Version}/open
 
   AuthenticatedApiUrl:
-    Description: "Authenticated API URL"
-    Value: !Sub "https://${TMBApi}.execute-api.${AWS::Region}.amazonaws.com/${Version}/"
+    Description: Authenticated API URL
+    Value: !Sub https://${TMBApi}.execute-api.${AWS::Region}.amazonaws.com/${Version}/
+
+  APIDocumentation:
+    Description: API Gateway Documentation URL
+    Value: !Sub https://${TMBApi}.execute-api.${AWS::Region}.amazonaws.com/${Version}/documentation
 
   UserPoolId:
-    Description: "Cognito User Pool ID"
+    Description: Cognito User Pool ID
     Value: !Ref UserPool
   UserPoolClientId:
-    Description: "Cognito User Pool Client ID"
+    Description: Cognito User Pool Client ID
     Value: !Ref UserPoolTokenClient
 
   TMBGetRouteUrl:
