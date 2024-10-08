@@ -5,8 +5,8 @@ Certainly! Let's set up your AWS SAM project so that you can deploy it using the
 Your `.env` file should be in the root directory of your SAM project and should look like this:
 
 ```plaintext
-TMB_APP_ID=8de5b882
-TMB_APP_KEY=a9e0b1a36bd4417ffd5a815b186d043d
+TMB_APP_ID= # your id here
+TMB_APP_KEY= # your api key here
 ```
 
 ### Step 2: Update Your `template.yaml`
